@@ -1,13 +1,13 @@
 # MongoDB-Board  
 
-## Client  
+### Client  
 frontend technologies used in this project:  
 * HTML5  
 * CSS3  
 * JavaScript  
-* Jquery
+* JQuery
 
-## Server  
+### Server  
 backend technologies used in this project:  
 * Node.js  
 * express  
