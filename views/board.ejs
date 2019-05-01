@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Nanum+Pen+Script" rel="stylesheet">
+    <script>
+        // pagination 현재 페이지 활성화 함수
+        $(function(){
+            var page = location.href.split("page=")[1]; // url에 page 넘버로 구분
+            var index = page-1; // 0부터 시작이므로 1 빼줌
+            if(page == null) { // 메인화면에서는 page 쿼리가 없으므로 빈값일 때
+                $("#pagination a:eq(0)").attr('class', 'current-page');
+            }
+
+            $("#pagination a:eq(" + index + ")").attr('class', 'current-page');
+        });
+
+        // 새 글 호출
+        function WriteForm(){
+            <%if(isAuthenticated){%>
+                $('#write_form').fadeIn();
+                $('.main_sub').hide();
+                $('#User_Info').hide();
+            <% }else{%>
+                alert('로그인을 해주세요 !');
+            <% }%>
+        }
+
+        // 새 글 취소
+        function cancelWriteForm(){
+            $('#write_form').hide();
+            $('.main_sub').show();
+            $('#User_Info').show();
+        }
+
+        // 새 글 등록
+        function submitContents(){
+            var title = $('#addSubject').val();
+            var content = $('#addContents').val();
+            var writer = $('#addWriter').val();
+            var password = $('#addPassword').val();
+
+            if(title == '' || content == '' || writer == '' || password == ''){
+                alert('제목과 내용, 작성자 비밀번호 모두 있어야 합니다.');
+                return;
+            }else{
+                $('#writeAction').submit();
+            }
+        }
+
+        // 검색어 함수
+        function searchContent(){
+            if($('#searchWord').val() == ""){
+                alert("검색어를 입력해주세요!!!");
+            }else{
+                $('#searchAction').submit();
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="main">
+        <div id="User_Info">
+            <% if(isAuthenticated){ %>
+                <div><a href="/signup/logout">로그아웃</a></div>
+            <% } else { %>
+                    <a href="/signup" target="_blank">회원가입</a>
+                    <a href="/login" target="_blank">로그인</a>
+            <% } %>
+        </div>
+        <div class="main_sub">
+            <a href="/boards"><h1>몽고DB를 이용한 게시판</h1></a>
+            <table class="board_list">
+                <tr>
+                    <th>No.</th>
+                    <th>제목</th>
+                    <th>작성자</th>
+                    <th>날짜</th>
+                    <th>조회수</th>
+                </tr>
+                <%if(contents.length>0){%>
+                    <%var a = 0;%>
+                    <%contents.forEach(function(item){%>
+                    <%a++;%>
+                    <tr>
+                        <td class="number"><%=a%></td>
+                        <td class="title"><a href="/boards/view?id=<%=item._id%>"><%=item.title%></a></td>
+                        <td class="writer"><%=item.writer%></td>
+                        <td class="date"><%=getTimeStamp(item.date)%></td>
+                        <td class="cnt"><%=item.count%></td>
+                    </tr>
+                    <%})%>
+                    <%}else{%>
+                    <tr>
+                        <td colspan="5">게시물이 없습니다.</td>
+                    </tr>
+                    <%}%>
+            </table>
+
+            <!-- 페이지 뷰 -->
+            <div id="pagination">
+                <%for(var i=1; i <= pagination; i++){ %>
+                <ul>
+                    <li><a href="/boards?page=<%=i%>"><%=i%></a></li>
+                </ul>
+                <%}%>
+            </div>
+
+            <!-- 글 검색 -->
+            <div class="txt_bt"><a onclick="WriteForm();">글 작성</a></div>
+            <div class="search">
+                    <form action="/boards/search" method="get" id="searchAction" name="searchAction">
+                        <div class="search_container">
+                            <input type="text" id="searchWord" name="searchWord">
+                            <div class="search_btn"><a href="#" onclick="searchContent();">검색</a></div>
+                        </div>
+                    </form>
+            </div>
+        </div>
+        <!-- 새 글 폼 -->
+        <div id="write_form" style="display:none">
+            <form action="/boards/?mode=add" id="writeAction" method="post">
+                <input type="text" id="addSubject" name="addSubject" placeholder="제목">
+                <input type="text" id="addWriter" name="addWriter" placeholder="작성자">
+                <input type="password" id="addPassword" name="addPassword" placeholder="비밀번호">
+                <textarea id="addContents" name="addContents" cols="60" rows="20" placeholder="내용을 입력해주세요."></textarea>
+            </form>
+            <div class="write_btn">
+                <div><a onclick="submitContents();">SUBMIT</a></div>
+                <div><a onclick="cancelWriteForm();">CANCEL</a></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+<!-- 날짜 설정 함수 -->
+<%
+function leadingZeros(n, digits) {
+    var zero = '';
+    n = n.toString();
+
+    if (n.length < digits) {
+        for (i = 0; i < digits - n.length; i++)
+            zero += '0';
+    }
+    return zero + n;
+}
+
+function getTimeStamp(date){
+
+    var s =
+            leadingZeros(date.getFullYear(), 4) + '-' +
+            leadingZeros(date.getMonth() + 1, 2) + '-' +
+            leadingZeros(date.getDate(), 2) + ' ' +
+
+            leadingZeros(date.getHours(), 2) + ':' +
+            leadingZeros(date.getMinutes(), 2);
+
+    return s;
+}
+%>

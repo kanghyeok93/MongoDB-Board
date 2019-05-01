@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+        // 날짜 설정 함수
+        function leadingZeros(n, digits) {
+            var zero = '';
+            n = n.toString();
+
+            if (n.length < digits) {
+                for (i = 0; i < digits - n.length; i++)
+                    zero += '0';
+            }
+            return zero + n;
+        }
+
+        function getTimeStamp(){
+            var date = new Date();
+
+            var s =
+                leadingZeros(date.getFullYear(), 4) + '-' +
+                leadingZeros(date.getMonth() + 1, 2) + '-' +
+                leadingZeros(date.getDate(), 2) + ' ' +
+
+                leadingZeros(date.getHours(), 2) + ':' +
+                leadingZeros(date.getMinutes(), 2);
+
+            return s;
+        }
+
+        // 수정 버튼 호출
+        function modifyContents() {
+            $('#content_detail').hide();
+            $('#reply').hide();
+            $('#delete_form').hide();
+            $('#modify_form').show();
+
+            $('.modSubject').val('<%=content.title%>');
+            $('.modWriter').text('<%=content.writer%>');
+            $('.textContents').html('<%=content.contents%>');
+
+        }
+
+        // 수정 버튼 SUBMIT
+        function modifySubmitContents(){
+            var title = $('#modContentSubject').val();
+            var content = $('#modContents').val();
+            var inputPassword = $('#modContentPassword').val();
+
+            var chkpw = checkPW(inputPassword);
+
+            if(chkpw == true){
+                if(title == "" || content == ""){
+                    alert("제목과 내용 모두 있어야 합니다.");
+                    return;
+                }else{
+                    $('#modifyAction').submit()
+                }
+            }else{
+                alert("글 작성시 입력한 비밀 번호를 입력해주세요.");
+                return;
+            }
+        }
+
+        // 삭제 버튼
+        function deleteContents(){
+            $('#delete_form').show();
+        }
+
+        // 삭제 버튼 SUBMIT
+        function deleteSubmitContents(){
+            var inputPassword = $('#delPassword').val();
+            var chkpw = checkPW(inputPassword);
+
+            if(chkpw == true){
+                location.href = '/boards/delete?id=<%=content._id%>';
+            }else{
+                alert("글 작성시 입력한 비밀번호를 입력해주세요.");
+                return;
+            }
+        }
+
+        // 취소 버튼
+        function cancelForm(option){
+                if(option == 'modify'){
+                    $('#content_detail').show();
+                    $('#modify_form').hide();
+                    $('#reply').show();
+                }else{
+                    $('#delete_form').hide();
+                }
+        }
+
+        // 비밀번호 확인 함수
+        function checkPW(inputPassword){
+            var result = "";
+
+            $.ajax({
+                url:'/boards/password/?id=<%=content._id%>',
+                async : false,
+                success : function(password){
+                    if(inputPassword == password)
+                        result = true;
+                    else{
+                        result = false;
+                    }
+                }
+            });
+            return result;
+        }
+
+        // 댓글 페이징
+        function changePage(page) {
+            $.get('/boards/reply?id=<%=content._id%>&page='+page ,function(replyList) {
+                var output = '';
+                for(var i=0;i<replyList.length;i++) {
+                    output += '<div class="reply_content"><div class="reply_info">'+replyList[i].name+' / '+ getTimeStamp(replyList[i].date)+'</div>';
+                    output += '<div class="reply_text">' + replyList[i].memo +'</div></div>';
+                }
+                $('.reply_list').html(output);
+            });
+        }
+
+        // 댓글 작성 버튼
+        function replySubmit(){
+            var replyWriter = $('#replayWriter').val();
+            var replyComments = $('#replyComment').val();
+
+            if(replyWriter == '' || replyComments == ''){
+                alert('모두 입력해 주십시오.');
+                return;
+            }else{
+                $('#replyAction').submit();
+            }
+        }
+    </script>
+</head>
+<body>
+<div id="main_detail">
+    <!-- 타이틀 뷰 -->
+    <div id="content_detail">
+        <div><%=content.title%></div>
+        <div><%=getTimeStamp(content.date)%> / <span class="bold"><%=content.writer%></span></div>
+        <div class="clear"></div>
+        <div><%=content.contents%></div>
+        <div class="detail_btn">
+            <a onclick="modifyContents();">수정</a>
+            <a onclick="deleteContents();">삭제</a>
+            <a href="/boards">확인</a>
+        </div>
+    </div>
+
+    <!-- 댓글 폼 -->
+    <div id="reply">
+        <div class="reply_top">
+            <div class="reply_list">
+                <%if(content.comments.length>0){%>
+                    <%var commentList = content.comments;%>
+                    <%for(var a = 0; a < commentList.length; a++){%>
+                    <%if(a<3){%>
+                    <div class="reply_content">
+                        <div class="reply_info"><span class="bold"><%=commentList[a].name%></span> / <%=getTimeStamp(commentList[a].date)%></div>
+                        <div class="reply_text"><%=commentList[a].memo%></div>
+                    </div>
+                    <%}%>
+                    <%}%>
+                    <%}else{%>
+                    <div class="reply_content">
+                        <div class="reply_info">댓글이 없습니다.</div>
+                    </div>
+                    <%}%>
+            </div>
+
+            <!-- 댓글 페이징 -->
+            <div id="reply_pagination">
+                <ul>
+                    <%for(var i=1; i <= replyPage; i++){%>
+                    <a href="#" onclick="changePage(<%=i%>);"><li><%=i%></li></a>
+                    <%}%>
+                </ul>
+            </div>
+        </div>
+
+        <div id="reply_bottom">
+            <div id="reply_form">
+                <form id="replyAction" action="/boards/reply" method="post">
+                    <div id="reply_writer">
+                        <input type="text" id="replayWriter" name="replyWriter" placeholder="댓글작성자">
+                    </div>
+                    <div id="replay_comment">
+                        <textarea name="replyComment" id="replyComment" cols="30" rows="3" placeholder="댓글내용"></textarea>
+                    </div>
+                    <input type="hidden" name="replyId" id="replyId" value="<%=content._id%>">
+                    <div class="reply_btn">
+                        <a href="#" onclick="replySubmit()">댓글작성</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 수정 폼 -->
+    <div id="modify_form" style="display:none">
+        <form id="modifyAction" action="/boards/?mode=modify" method="post">
+            <input type="text" id="modContentSubject" name="modContentSubject" class="modSubject" placeholder="제목">
+            <div>
+                <textarea class="textContents" id="modContents" name="modContents" cols="60" rows="20"></textarea>
+                <span class="modWriter" id="modContentWriter" name="modContentWriter"></span>
+                <input type="password" name="modContentPassword" id="modContentPassword" class="inputPassword" placeholder="비밀번호">
+            </div>
+            <input type="hidden" id="modId" name="modId" value="<%=content._id%>">
+        </form>
+        <div>
+            <a onclick="modifySubmitContents();">SUBMIT</a>
+            <a onclick="cancelForm('modify');">CANCEL</a>
+        </div>
+    </div>
+
+    <!-- 삭제 폼 -->
+    <div id="delete_form" style="display:none">
+        <h2>비밀 번호를 입력하면 글이 삭제됩니다.</h2>
+        <div>
+            <input type="password" id="delPassword" name="delPassword" placeholder="비밀번호">
+            <button onclick="deleteSubmitContents()">삭제</button>
+            <button onclick="cancelForm('delete')">취소</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+<!-- 날짜 설정 함수 -->
+<%
+function leadingZeros(n, digits) {
+    var zero = '';
+    n = n.toString();
+
+    if (n.length < digits) {
+        for (i = 0; i < digits - n.length; i++)
+            zero += '0';
+    }
+    return zero + n;
+}
+
+function getTimeStamp(date){
+
+    var s =
+            leadingZeros(date.getFullYear(), 4) + '-' +
+            leadingZeros(date.getMonth() + 1, 2) + '-' +
+            leadingZeros(date.getDate(), 2) + ' ' +
+
+            leadingZeros(date.getHours(), 2) + ':' +
+            leadingZeros(date.getMinutes(), 2);
+
+    return s;
+}
+%>
+
