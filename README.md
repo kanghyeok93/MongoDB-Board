@@ -6,6 +6,7 @@ frontend technologies used in this project:
 * CSS3  
 * JavaScript  
 * JQuery
+* EJS
 
 ### Server  
 backend technologies used in this project:  
